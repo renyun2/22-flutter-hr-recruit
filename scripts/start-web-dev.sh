@@ -7,6 +7,21 @@ tmux kill-session -t "${SESSION_BACKEND}" 2>/dev/null || true
 tmux new-session -d -s "${SESSION_BACKEND}" \
   "cd /app/backend && exec npm start"
 
+echo '[dev] Waiting for backend :3009/health ...'
+ready=0
+for _ in $(seq 1 45); do
+  if curl -sf --max-time 1 "http://127.0.0.1:3009/health" >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  sleep 1
+done
+if [ "${ready}" -ne 1 ]; then
+  echo '[dev] ERROR: backend did not become healthy on :3009 (check tmux attach -t backend-dev)' >&2
+  exit 1
+fi
+echo '[dev] Backend is up.'
+
 cd /app/mobile
 flutter pub get
 
